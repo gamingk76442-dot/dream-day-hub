@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Heart, Car, Sparkles, Settings } from "lucide-react";
+import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -15,6 +16,7 @@ const navLinks = [
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user, isAdmin, signOut, loading } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -47,17 +49,38 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Admin & CTA */}
+          {/* Auth & Admin */}
           <div className="hidden lg:flex items-center gap-4">
-            <Link to="/admin">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Settings className="w-4 h-4" />
-                Admin
+            {!loading && (
+              <>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <Settings className="w-4 h-4" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
+                {user ? (
+                  <Button variant="ghost" size="sm" className="gap-2" onClick={signOut}>
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Link to="/auth">
+                    <Button variant="ghost" size="sm" className="gap-2">
+                      <LogIn className="w-4 h-4" />
+                      Sign In
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
+            <Link to="/driving">
+              <Button variant="hero" size="default">
+                Book Now
               </Button>
             </Link>
-            <Button variant="hero" size="default">
-              Book Now
-            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -96,15 +119,36 @@ const Header = () => {
                 </Link>
               ))}
               <div className="flex flex-col gap-2 pt-4 border-t border-border mt-2">
-                <Link to="/admin" onClick={() => setIsOpen(false)}>
-                  <Button variant="outline" className="w-full gap-2">
-                    <Settings className="w-4 h-4" />
-                    Admin Panel
+                {!loading && (
+                  <>
+                    {isAdmin && (
+                      <Link to="/admin" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full gap-2">
+                          <Settings className="w-4 h-4" />
+                          Admin Panel
+                        </Button>
+                      </Link>
+                    )}
+                    {user ? (
+                      <Button variant="outline" className="w-full gap-2" onClick={() => { signOut(); setIsOpen(false); }}>
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </Button>
+                    ) : (
+                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full gap-2">
+                          <LogIn className="w-4 h-4" />
+                          Sign In
+                        </Button>
+                      </Link>
+                    )}
+                  </>
+                )}
+                <Link to="/driving" onClick={() => setIsOpen(false)}>
+                  <Button variant="hero" className="w-full">
+                    Book Now
                   </Button>
                 </Link>
-                <Button variant="hero" className="w-full">
-                  Book Now
-                </Button>
               </div>
             </nav>
           </motion.div>

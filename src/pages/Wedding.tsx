@@ -1,36 +1,68 @@
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import { Heart, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Heart, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
-const categories = ["All", "Flowers", "Decor", "Stationery", "Glassware", "Accessories"];
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image_url: string | null;
+  description: string | null;
+  category_id: string | null;
+}
 
-const products = [
-  { id: "1", name: "Elegant Bridal Bouquet", price: 149.99, image: "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop", category: "Flowers" },
-  { id: "2", name: "Crystal Champagne Glasses Set", price: 89.99, image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400&h=300&fit=crop", category: "Glassware" },
-  { id: "3", name: "Gold Wedding Invitation Suite", price: 199.99, image: "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=400&h=300&fit=crop", category: "Stationery" },
-  { id: "4", name: "Vintage Table Centerpiece", price: 79.99, image: "https://images.unsplash.com/photo-1478146896981-b80fe463b330?w=400&h=300&fit=crop", category: "Decor" },
-  { id: "5", name: "Rose Gold Candle Holders", price: 45.99, image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop", category: "Decor" },
-  { id: "6", name: "Bridal Veil - Cathedral Length", price: 299.99, image: "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop", category: "Accessories" },
-  { id: "7", name: "Wedding Guest Book", price: 59.99, image: "https://images.unsplash.com/photo-1604017011826-d3b4c23f8914?w=400&h=300&fit=crop", category: "Stationery" },
-  { id: "8", name: "White Rose Arrangement", price: 129.99, image: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=400&h=300&fit=crop", category: "Flowers" },
-];
+interface Category {
+  id: string;
+  name: string;
+}
 
 const Wedding = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [loading, setLoading] = useState(true);
 
-  const filteredProducts = activeCategory === "All" 
-    ? products 
-    : products.filter(p => p.category === activeCategory);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [productsRes, categoriesRes] = await Promise.all([
+        supabase.from("products").select("*").eq("is_active", true),
+        supabase.from("product_categories").select("*"),
+      ]);
+
+      if (productsRes.data) setProducts(productsRes.data);
+      if (categoriesRes.data) setCategories(categoriesRes.data);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return "Uncategorized";
+    const cat = categories.find(c => c.id === categoryId);
+    return cat?.name || "Uncategorized";
+  };
+
+  const filteredProducts = activeCategory === "All"
+    ? products
+    : products.filter(p => getCategoryName(p.category_id) === activeCategory);
+
+  const categoryNames = ["All", ...categories.map(c => c.name)];
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-24 pb-20">
-        {/* Hero */}
         <section className="bg-gradient-hero py-16">
           <div className="container mx-auto px-4 text-center">
             <motion.div
@@ -51,12 +83,10 @@ const Wedding = () => {
           </div>
         </section>
 
-        {/* Filters & Products */}
         <section className="container mx-auto px-4 py-12">
-          {/* Category Filters */}
           <div className="flex flex-wrap items-center gap-3 mb-8">
             <Filter className="w-5 h-5 text-muted-foreground" />
-            {categories.map((cat) => (
+            {categoryNames.map((cat) => (
               <Button
                 key={cat}
                 variant={activeCategory === cat ? "hero" : "outline"}
@@ -68,19 +98,34 @@ const Wedding = () => {
             ))}
           </div>
 
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product, index) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <ProductCard {...product} />
-              </motion.div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No products available yet. Check back soon!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredProducts.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <ProductCard
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    image={product.image_url || "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop"}
+                    category={getCategoryName(product.category_id)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </section>
       </main>
       <Footer />

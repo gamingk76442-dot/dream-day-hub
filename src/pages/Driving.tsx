@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Car, Clock, Shield, Star, MapPin, Users, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Car, Clock, Shield, Star, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,10 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 const vehicleTypes = [
-  { name: "Sedan", capacity: "4 passengers", price: "$50/hr", image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=300&h=200&fit=crop" },
-  { name: "SUV", capacity: "7 passengers", price: "$75/hr", image: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=300&h=200&fit=crop" },
-  { name: "Luxury", capacity: "4 passengers", price: "$120/hr", image: "https://images.unsplash.com/photo-1563720360172-67b8f3dce741?w=300&h=200&fit=crop" },
-  { name: "Limousine", capacity: "10 passengers", price: "$200/hr", image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=300&h=200&fit=crop" },
+  { name: "Sedan", capacity: "4 passengers", price: 50, image: "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=300&h=200&fit=crop" },
+  { name: "SUV", capacity: "7 passengers", price: 75, image: "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=300&h=200&fit=crop" },
+  { name: "Luxury", capacity: "4 passengers", price: 120, image: "https://images.unsplash.com/photo-1563720360172-67b8f3dce741?w=300&h=200&fit=crop" },
+  { name: "Limousine", capacity: "10 passengers", price: 200, image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=300&h=200&fit=crop" },
 ];
 
 const features = [
@@ -24,8 +25,10 @@ const features = [
 ];
 
 const Driving = () => {
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     phone: "",
     pickup: "",
     dropoff: "",
@@ -35,17 +38,41 @@ const Driving = () => {
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Booking request submitted! We'll contact you shortly.");
-    setFormData({ name: "", phone: "", pickup: "", dropoff: "", date: "", time: "", vehicle: "", notes: "" });
+    setLoading(true);
+
+    try {
+      const selectedVehicle = vehicleTypes.find(v => v.name === formData.vehicle);
+      
+      const { error } = await supabase.from("bookings").insert({
+        customer_name: formData.name,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        service_type: `Driving - ${formData.vehicle}`,
+        booking_date: formData.date,
+        booking_time: formData.time,
+        notes: `Pickup: ${formData.pickup}, Dropoff: ${formData.dropoff}. ${formData.notes}`,
+        total_amount: selectedVehicle?.price || null,
+        status: "pending",
+      });
+
+      if (error) throw error;
+
+      toast.success("Booking request submitted! We'll contact you shortly.");
+      setFormData({ name: "", email: "", phone: "", pickup: "", dropoff: "", date: "", time: "", vehicle: "", notes: "" });
+    } catch (error) {
+      console.error("Booking error:", error);
+      toast.error("Failed to submit booking. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-24 pb-20">
-        {/* Hero */}
         <section className="bg-secondary text-secondary-foreground py-20">
           <div className="container mx-auto px-4">
             <motion.div
@@ -75,7 +102,6 @@ const Driving = () => {
           </div>
         </section>
 
-        {/* Vehicle Types */}
         <section className="py-16 bg-muted/50">
           <div className="container mx-auto px-4">
             <h2 className="font-serif text-3xl font-bold text-foreground text-center mb-12">
@@ -98,7 +124,7 @@ const Driving = () => {
                       <Users className="w-4 h-4" />
                       {vehicle.capacity}
                     </div>
-                    <div className="text-xl font-bold text-primary">{vehicle.price}</div>
+                    <div className="text-xl font-bold text-primary">${vehicle.price}/hr</div>
                   </div>
                 </motion.div>
               ))}
@@ -106,7 +132,6 @@ const Driving = () => {
           </div>
         </section>
 
-        {/* Booking Form */}
         <section className="py-16 bg-background">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">
@@ -133,6 +158,16 @@ const Driving = () => {
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
                     />
                   </div>
@@ -184,7 +219,7 @@ const Driving = () => {
                       required
                     />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="space-y-2">
                     <Label htmlFor="vehicle">Preferred Vehicle</Label>
                     <select
                       id="vehicle"
@@ -195,7 +230,7 @@ const Driving = () => {
                     >
                       <option value="">Select a vehicle</option>
                       {vehicleTypes.map((v) => (
-                        <option key={v.name} value={v.name}>{v.name} - {v.price}</option>
+                        <option key={v.name} value={v.name}>{v.name} - ${v.price}/hr</option>
                       ))}
                     </select>
                   </div>
@@ -210,8 +245,8 @@ const Driving = () => {
                     />
                   </div>
                 </div>
-                <Button type="submit" variant="hero" size="lg" className="w-full mt-6">
-                  Submit Booking Request
+                <Button type="submit" variant="hero" size="lg" className="w-full mt-6" disabled={loading}>
+                  {loading ? "Submitting..." : "Submit Booking Request"}
                 </Button>
               </motion.form>
             </div>
