@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Calendar, Package, Image, Settings, Check, Clock, X, Eye, Edit2, Plus, Loader2 } from "lucide-react";
+import { LayoutDashboard, Calendar, Package, Image, Settings, Check, Clock, X, Eye, Edit2, Plus, Loader2, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -18,7 +18,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-type Tab = "bookings" | "products" | "images" | "settings";
+type Tab = "bookings" | "orders" | "products" | "images" | "settings";
+
+interface Order {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  status: string;
+  total_amount: number;
+  created_at: string;
+}
+
+interface OrderItem {
+  id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+}
 
 interface Booking {
   id: string;
@@ -52,8 +69,11 @@ const Admin = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("bookings");
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [images, setImages] = useState<ImageItem[]>([]);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItem[]>([]);
+  const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Product dialog state
@@ -88,6 +108,13 @@ const Admin = () => {
           .order("created_at", { ascending: false });
         if (error) throw error;
         setBookings(data || []);
+      } else if (activeTab === "orders") {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        setOrders(data || []);
       } else if (activeTab === "products") {
         const { data, error } = await supabase
           .from("products")
@@ -198,8 +225,37 @@ const Admin = () => {
     }
   };
 
+  const updateOrderStatus = async (id: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status })
+        .eq("id", id);
+      if (error) throw error;
+      toast.success("Order status updated");
+      fetchData();
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const viewOrderDetails = async (orderId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", orderId);
+      if (error) throw error;
+      setSelectedOrderItems(data || []);
+      setOrderDetailsOpen(true);
+    } catch (error) {
+      toast.error("Failed to load order items");
+    }
+  };
+
   const tabs = [
     { id: "bookings" as Tab, label: "Bookings", icon: Calendar },
+    { id: "orders" as Tab, label: "Orders", icon: ShoppingCart },
     { id: "products" as Tab, label: "Products", icon: Package },
     { id: "images" as Tab, label: "Images", icon: Image },
     { id: "settings" as Tab, label: "Settings", icon: Settings },
@@ -341,6 +397,79 @@ const Admin = () => {
                                           size="sm"
                                           onClick={() => updateBookingStatus(booking.id, "cancelled")}
                                           disabled={booking.status === "cancelled"}
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {activeTab === "orders" && (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h2 className="font-serif text-xl font-bold">Product Orders</h2>
+                          <Badge variant="outline">{orders.filter(o => o.status === "pending").length} Pending</Badge>
+                        </div>
+                        {orders.length === 0 ? (
+                          <p className="text-muted-foreground text-center py-8">No orders yet</p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b border-border">
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Customer</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Date</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Status</th>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {orders.map((order) => (
+                                  <tr key={order.id} className="border-b border-border last:border-0 hover:bg-muted/50">
+                                    <td className="py-4 px-4">
+                                      <div>
+                                        <div className="font-medium">{order.customer_name}</div>
+                                        <div className="text-sm text-muted-foreground">{order.customer_email}</div>
+                                        {order.customer_phone && (
+                                          <div className="text-sm text-muted-foreground">{order.customer_phone}</div>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-4 px-4 text-muted-foreground">
+                                      {new Date(order.created_at).toLocaleDateString()}
+                                    </td>
+                                    <td className="py-4 px-4 font-semibold text-primary">${order.total_amount}</td>
+                                    <td className="py-4 px-4">{getStatusBadge(order.status)}</td>
+                                    <td className="py-4 px-4">
+                                      <div className="flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => viewOrderDetails(order.id)}
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => updateOrderStatus(order.id, "confirmed")}
+                                          disabled={order.status === "confirmed"}
+                                        >
+                                          <Check className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                          disabled={order.status === "cancelled"}
                                         >
                                           <X className="w-4 h-4" />
                                         </Button>
@@ -506,6 +635,37 @@ const Admin = () => {
               {editingProduct ? "Update Product" : "Create Product"}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={orderDetailsOpen} onOpenChange={setOrderDetailsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Order Items</DialogTitle>
+          </DialogHeader>
+          {selectedOrderItems.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No items in this order</p>
+          ) : (
+            <div className="space-y-3">
+              {selectedOrderItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <div className="font-medium">{item.product_name}</div>
+                    <div className="text-sm text-muted-foreground">Qty: {item.quantity}</div>
+                  </div>
+                  <div className="font-semibold text-primary">
+                    ${(item.unit_price * item.quantity).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+              <div className="pt-3 border-t border-border flex justify-between font-semibold">
+                <span>Total</span>
+                <span className="text-primary">
+                  ${selectedOrderItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
