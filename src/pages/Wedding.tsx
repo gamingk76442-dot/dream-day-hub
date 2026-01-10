@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import OrderDialog from "@/components/OrderDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,13 +26,6 @@ const Wedding = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [loading, setLoading] = useState(true);
-  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
-  const handleBookProduct = (product: Product) => {
-    setSelectedProduct(product);
-    setOrderDialogOpen(true);
-  };
 
   useEffect(() => {
     fetchData();
@@ -129,7 +121,6 @@ const Wedding = () => {
                     price={product.price}
                     image={product.image_url || "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop"}
                     category={getCategoryName(product.category_id)}
-                    onBook={() => handleBookProduct(product)}
                   />
                 </motion.div>
               ))}
@@ -138,11 +129,6 @@ const Wedding = () => {
         </section>
       </main>
       <Footer />
-      <OrderDialog
-        open={orderDialogOpen}
-        onOpenChange={setOrderDialogOpen}
-        product={selectedProduct}
-      />
     </div>
   );
 };
