@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut, User } from "lucide-react";
+import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import CartButton from "@/components/CartButton";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -49,8 +50,9 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Auth & Admin */}
+          {/* Auth & Admin & Cart */}
           <div className="hidden lg:flex items-center gap-4">
+            <CartButton />
             {!loading && (
               <>
                 {isAdmin && (
@@ -83,13 +85,16 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="lg:hidden p-2 text-foreground"
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile Cart & Menu Button */}
+          <div className="lg:hidden flex items-center gap-2">
+            <CartButton />
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 text-foreground"
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
       </div>
 

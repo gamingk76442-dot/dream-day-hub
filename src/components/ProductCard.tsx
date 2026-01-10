@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag } from "lucide-react";
+import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   id: string;
@@ -11,7 +13,14 @@ interface ProductCardProps {
   onBook?: () => void;
 }
 
-const ProductCard = ({ name, price, image, category, onBook }: ProductCardProps) => {
+const ProductCard = ({ id, name, price, image, category }: ProductCardProps) => {
+  const { addItem } = useCart();
+
+  const handleAddToCart = () => {
+    addItem({ id, name, price, image });
+    toast.success(`${name} added to cart`);
+  };
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -48,9 +57,9 @@ const ProductCard = ({ name, price, image, category, onBook }: ProductCardProps)
           <span className="text-xl font-bold text-primary">
             ${price.toFixed(2)}
           </span>
-          <Button variant="hero" size="sm" onClick={onBook} className="gap-2">
-            <ShoppingBag className="w-4 h-4" />
-            Book
+          <Button variant="hero" size="sm" onClick={handleAddToCart} className="gap-2">
+            <ShoppingCart className="w-4 h-4" />
+            Add to Cart
           </Button>
         </div>
       </div>
