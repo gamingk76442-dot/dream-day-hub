@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut } from "lucide-react";
+import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import CartButton from "@/components/CartButton";
@@ -64,10 +64,18 @@ const Header = () => {
                   </Link>
                 )}
                 {user ? (
-                  <Button variant="ghost" size="sm" className="gap-2" onClick={signOut}>
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </Button>
+                  <>
+                    <Link to="/orders">
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <ClipboardList className="w-4 h-4" />
+                        My Orders
+                      </Button>
+                    </Link>
+                    <Button variant="ghost" size="sm" className="gap-2" onClick={signOut}>
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
+                  </>
                 ) : (
                   <Link to="/auth">
                     <Button variant="ghost" size="sm" className="gap-2">
@@ -135,10 +143,18 @@ const Header = () => {
                       </Link>
                     )}
                     {user ? (
-                      <Button variant="outline" className="w-full gap-2" onClick={() => { signOut(); setIsOpen(false); }}>
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
-                      </Button>
+                      <>
+                        <Link to="/orders" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full gap-2">
+                            <ClipboardList className="w-4 h-4" />
+                            My Orders
+                          </Button>
+                        </Link>
+                        <Button variant="outline" className="w-full gap-2" onClick={() => { signOut(); setIsOpen(false); }}>
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </Button>
+                      </>
                     ) : (
                       <Link to="/auth" onClick={() => setIsOpen(false)}>
                         <Button variant="outline" className="w-full gap-2">
