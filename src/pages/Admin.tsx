@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Calendar, Package, Image, Settings, Check, Clock, X, Eye, Edit2, Plus, Loader2, ShoppingCart, Upload } from "lucide-react";
+import { LayoutDashboard, Calendar, Package, Image, Settings, Check, Clock, X, Eye, Edit2, Plus, Loader2, ShoppingCart, Upload, Truck, PackageCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -273,10 +273,14 @@ const Admin = () => {
         return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><Check className="w-3 h-3 mr-1" />Confirmed</Badge>;
       case "pending":
         return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/20"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case "processing":
+        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><RefreshCw className="w-3 h-3 mr-1" />Processing</Badge>;
+      case "shipped":
+        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20"><Truck className="w-3 h-3 mr-1" />Shipped</Badge>;
+      case "completed":
+        return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><PackageCheck className="w-3 h-3 mr-1" />Completed</Badge>;
       case "cancelled":
         return <Badge className="bg-red-500/10 text-red-600 border-red-500/20"><X className="w-3 h-3 mr-1" />Cancelled</Badge>;
-      case "completed":
-        return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Check className="w-3 h-3 mr-1" />Completed</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -506,30 +510,70 @@ const Admin = () => {
                                     <td className="py-4 px-4 font-semibold text-primary">${order.total_amount}</td>
                                     <td className="py-4 px-4">{getStatusBadge(order.status)}</td>
                                     <td className="py-4 px-4">
-                                      <div className="flex gap-1">
+                                      <div className="flex flex-wrap gap-1">
                                         <Button
                                           variant="ghost"
                                           size="sm"
                                           onClick={() => viewOrderDetails(order.id)}
+                                          title="View Details"
                                         >
                                           <Eye className="w-4 h-4" />
                                         </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => updateOrderStatus(order.id, "confirmed")}
-                                          disabled={order.status === "confirmed"}
-                                        >
-                                          <Check className="w-4 h-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => updateOrderStatus(order.id, "cancelled")}
-                                          disabled={order.status === "cancelled"}
-                                        >
-                                          <X className="w-4 h-4" />
-                                        </Button>
+                                        {order.status === "pending" && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => updateOrderStatus(order.id, "confirmed")}
+                                            title="Confirm Order"
+                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                          >
+                                            <Check className="w-4 h-4" />
+                                          </Button>
+                                        )}
+                                        {order.status === "confirmed" && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => updateOrderStatus(order.id, "processing")}
+                                            title="Start Processing"
+                                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                          >
+                                            <RefreshCw className="w-4 h-4" />
+                                          </Button>
+                                        )}
+                                        {order.status === "processing" && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => updateOrderStatus(order.id, "shipped")}
+                                            title="Mark as Shipped"
+                                            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                                          >
+                                            <Truck className="w-4 h-4" />
+                                          </Button>
+                                        )}
+                                        {order.status === "shipped" && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => updateOrderStatus(order.id, "completed")}
+                                            title="Mark as Completed"
+                                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                          >
+                                            <PackageCheck className="w-4 h-4" />
+                                          </Button>
+                                        )}
+                                        {order.status !== "cancelled" && order.status !== "completed" && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => updateOrderStatus(order.id, "cancelled")}
+                                            title="Cancel Order"
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          >
+                                            <X className="w-4 h-4" />
+                                          </Button>
+                                        )}
                                       </div>
                                     </td>
                                   </tr>
