@@ -89,6 +89,17 @@ const Admin = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Settings dialog state
+  const [businessInfoOpen, setBusinessInfoOpen] = useState(false);
+  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false);
+  const [businessInfo, setBusinessInfo] = useState({
+    name: "Wedding Bliss Events",
+    email: "contact@weddingbliss.com",
+    phone: "+1 (555) 123-4567",
+    address: "123 Wedding Lane, Love City, LC 12345",
+  });
+  const [notificationEmail, setNotificationEmail] = useState("admin@weddingbliss.com");
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -667,12 +678,36 @@ const Admin = () => {
                           <div className="p-4 rounded-xl border border-border">
                             <h3 className="font-medium mb-2">Business Information</h3>
                             <p className="text-sm text-muted-foreground mb-4">Update your business details and contact information.</p>
-                            <Button variant="outline">Edit Information</Button>
+                            <div className="grid gap-2 text-sm mb-4">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Name:</span>
+                                <span>{businessInfo.name}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Email:</span>
+                                <span>{businessInfo.email}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Phone:</span>
+                                <span>{businessInfo.phone}</span>
+                              </div>
+                            </div>
+                            <Button variant="outline" onClick={() => setBusinessInfoOpen(true)}>
+                              <Edit2 className="w-4 h-4 mr-2" />
+                              Edit Information
+                            </Button>
                           </div>
                           <div className="p-4 rounded-xl border border-border">
                             <h3 className="font-medium mb-2">Notification Preferences</h3>
                             <p className="text-sm text-muted-foreground mb-4">Manage how you receive booking notifications.</p>
-                            <Button variant="outline">Configure</Button>
+                            <div className="text-sm mb-4">
+                              <span className="text-muted-foreground">Notification email: </span>
+                              <span>{notificationEmail}</span>
+                            </div>
+                            <Button variant="outline" onClick={() => setNotificationSettingsOpen(true)}>
+                              <Settings className="w-4 h-4 mr-2" />
+                              Configure
+                            </Button>
                           </div>
                         </div>
                       </>
@@ -815,6 +850,92 @@ const Admin = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Information Dialog */}
+      <Dialog open={businessInfoOpen} onOpenChange={setBusinessInfoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Business Information</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            toast.success("Business information updated");
+            setBusinessInfoOpen(false);
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bizName">Business Name</Label>
+              <Input
+                id="bizName"
+                value={businessInfo.name}
+                onChange={(e) => setBusinessInfo({ ...businessInfo, name: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bizEmail">Email</Label>
+              <Input
+                id="bizEmail"
+                type="email"
+                value={businessInfo.email}
+                onChange={(e) => setBusinessInfo({ ...businessInfo, email: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bizPhone">Phone</Label>
+              <Input
+                id="bizPhone"
+                type="tel"
+                value={businessInfo.phone}
+                onChange={(e) => setBusinessInfo({ ...businessInfo, phone: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bizAddress">Address</Label>
+              <Textarea
+                id="bizAddress"
+                value={businessInfo.address}
+                onChange={(e) => setBusinessInfo({ ...businessInfo, address: e.target.value })}
+              />
+            </div>
+            <Button type="submit" variant="hero" className="w-full">
+              Save Changes
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notification Settings Dialog */}
+      <Dialog open={notificationSettingsOpen} onOpenChange={setNotificationSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Notification Preferences</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            toast.success("Notification settings updated");
+            setNotificationSettingsOpen(false);
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="notifEmail">Notification Email</Label>
+              <Input
+                id="notifEmail"
+                type="email"
+                value={notificationEmail}
+                onChange={(e) => setNotificationEmail(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Order and booking notifications will be sent to this email address.
+              </p>
+            </div>
+            <Button type="submit" variant="hero" className="w-full">
+              Save Settings
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
