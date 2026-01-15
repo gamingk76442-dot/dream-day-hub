@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut, ClipboardList } from "lucide-react";
+import { Menu, X, Heart, Car, Sparkles, Settings, LogIn, LogOut, ClipboardList, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import CartButton from "@/components/CartButton";
@@ -77,12 +77,20 @@ const Header = () => {
                     </Button>
                   </>
                 ) : (
-                  <Link to="/auth">
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <LogIn className="w-4 h-4" />
-                      Sign In
-                    </Button>
-                  </Link>
+                  <>
+                    <Link to="/track-order">
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <Search className="w-4 h-4" />
+                        Track Order
+                      </Button>
+                    </Link>
+                    <Link to="/auth">
+                      <Button variant="ghost" size="sm" className="gap-2">
+                        <LogIn className="w-4 h-4" />
+                        Sign In
+                      </Button>
+                    </Link>
+                  </>
                 )}
               </>
             )}
@@ -156,12 +164,20 @@ const Header = () => {
                         </Button>
                       </>
                     ) : (
-                      <Link to="/auth" onClick={() => setIsOpen(false)}>
-                        <Button variant="outline" className="w-full gap-2">
-                          <LogIn className="w-4 h-4" />
-                          Sign In
-                        </Button>
-                      </Link>
+                      <>
+                        <Link to="/track-order" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full gap-2">
+                            <Search className="w-4 h-4" />
+                            Track Order
+                          </Button>
+                        </Link>
+                        <Link to="/auth" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full gap-2">
+                            <LogIn className="w-4 h-4" />
+                            Sign In
+                          </Button>
+                        </Link>
+                      </>
                     )}
                   </>
                 )}
