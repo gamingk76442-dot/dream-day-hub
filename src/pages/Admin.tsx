@@ -299,12 +299,33 @@ const Admin = () => {
 
   const updateOrderStatus = async (id: string, status: string) => {
     try {
+      // Find the order to get customer details
+      const order = orders.find(o => o.id === id);
+      if (!order) throw new Error("Order not found");
+
       const { error } = await supabase
         .from("orders")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
-      toast.success("Order status updated");
+
+      // Send email notification for status change
+      try {
+        await supabase.functions.invoke("send-status-update", {
+          body: {
+            customer_name: order.customer_name,
+            customer_email: order.customer_email,
+            order_id: id,
+            new_status: status,
+            total_amount: order.total_amount,
+          },
+        });
+        toast.success("Order status updated & customer notified");
+      } catch (emailError) {
+        console.error("Failed to send status email:", emailError);
+        toast.success("Order status updated (email notification failed)");
+      }
+
       fetchData();
     } catch (error) {
       toast.error("Failed to update status");
