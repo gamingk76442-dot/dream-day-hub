@@ -1,40 +1,46 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Camera, Music, Utensils, Flower2, ArrowRight, Palette, PartyPopper } from "lucide-react";
 import ServiceCard from "./ServiceCard";
 
 const services = [
   {
+    id: "photography-video",
     icon: Camera,
     title: "Photography & Video",
     description: "Capture every precious moment with our professional photographers and videographers.",
     image: "https://images.unsplash.com/photo-1537633552985-df8429e8048b?w=400&h=250&fit=crop",
   },
   {
+    id: "dj-entertainment",
     icon: Music,
     title: "DJ & Entertainment",
     description: "Keep the party going with live music, DJs, and entertainment services.",
     image: "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=400&h=250&fit=crop",
   },
   {
+    id: "catering-services",
     icon: Utensils,
     title: "Catering Services",
     description: "Exquisite culinary experiences tailored to your event's unique needs.",
     image: "https://images.unsplash.com/photo-1555244162-803834f70033?w=400&h=250&fit=crop",
   },
   {
+    id: "floral-design",
     icon: Flower2,
     title: "Floral Design",
     description: "Stunning floral arrangements that bring natural beauty to your celebration.",
     image: "https://images.unsplash.com/photo-1469371670807-013ccf25f16a?w=400&h=250&fit=crop",
   },
   {
+    id: "event-decoration",
     icon: Palette,
     title: "Event Decoration",
     description: "Transform any venue with our creative decoration and styling services.",
     image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=400&h=250&fit=crop",
   },
   {
+    id: "event-planning",
     icon: PartyPopper,
     title: "Event Planning",
     description: "Full-service event planning and coordination for stress-free celebrations.",
@@ -43,6 +49,8 @@ const services = [
 ];
 
 const OtherServicesSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -74,7 +82,7 @@ const OtherServicesSection = () => {
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
             >
-              <ServiceCard {...service} />
+              <ServiceCard {...service} onClick={() => navigate(`/services/${service.id}`)} />
             </motion.div>
           ))}
         </div>
