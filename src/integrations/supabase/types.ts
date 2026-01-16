@@ -274,6 +274,39 @@ export type Database = {
         }
         Relationships: []
       }
+      service_reviews: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          id: string
+          is_approved: boolean | null
+          rating: number
+          review_text: string
+          service_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          id?: string
+          is_approved?: boolean | null
+          rating: number
+          review_text: string
+          service_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          id?: string
+          is_approved?: boolean | null
+          rating?: number
+          review_text?: string
+          service_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

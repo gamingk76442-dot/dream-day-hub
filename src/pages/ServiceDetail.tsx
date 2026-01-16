@@ -1,16 +1,25 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Camera, Music, Utensils, Flower2, Palette, PartyPopper, Check, Star, Calendar, ArrowLeft, Clock, Users } from "lucide-react";
+import { Camera, Music, Utensils, Flower2, Palette, PartyPopper, Check, Star, Calendar, ArrowLeft, Clock, MessageSquare, Quote } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+
+interface Review {
+  id: string;
+  customer_name: string;
+  rating: number;
+  review_text: string;
+  created_at: string;
+}
 
 const servicesData = [
   {
@@ -134,6 +143,8 @@ const ServiceDetail = () => {
   const { toast } = useToast();
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [reviewData, setReviewData] = useState({ name: "", email: "", rating: 5, text: "" });
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -145,6 +156,27 @@ const ServiceDetail = () => {
   });
 
   const service = servicesData.find((s) => s.id === serviceId);
+
+  // Fetch reviews from database
+  const { data: reviews = [], refetch: refetchReviews } = useQuery({
+    queryKey: ["service-reviews", serviceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_reviews")
+        .select("id, customer_name, rating, review_text, created_at")
+        .eq("service_id", serviceId)
+        .eq("is_approved", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Review[];
+    },
+    enabled: !!serviceId,
+  });
+
+  // Calculate average rating from reviews
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : service?.rating.toFixed(1);
 
   if (!service) {
     return (
@@ -190,6 +222,40 @@ const ServiceDetail = () => {
       toast({
         title: "Booking Failed",
         description: "Please try again or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.from("service_reviews").insert({
+        service_id: serviceId,
+        customer_name: reviewData.name,
+        customer_email: reviewData.email,
+        rating: reviewData.rating,
+        review_text: reviewData.text,
+        is_approved: false, // Requires admin approval
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Review Submitted!",
+        description: "Thank you! Your review will be visible after approval.",
+      });
+      setIsReviewOpen(false);
+      setReviewData({ name: "", email: "", rating: 5, text: "" });
+    } catch (error) {
+      console.error("Review error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -253,12 +319,12 @@ const ServiceDetail = () => {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-5 h-5 ${i < Math.floor(service.rating) ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                      className={`w-5 h-5 ${i < Math.floor(Number(averageRating)) ? "fill-gold text-gold" : "text-muted-foreground"}`}
                     />
                   ))}
-                  <span className="ml-2 font-semibold text-foreground">{service.rating}</span>
+                  <span className="ml-2 font-semibold text-foreground">{averageRating}</span>
                 </div>
-                <span className="text-muted-foreground">({service.reviewCount} reviews)</span>
+                <span className="text-muted-foreground">({reviews.length || service.reviewCount} reviews)</span>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock className="w-4 h-4" />
                   {service.duration}
@@ -308,6 +374,135 @@ const ServiceDetail = () => {
                     </div>
                   ))}
                 </div>
+              </motion.div>
+
+              {/* Customer Reviews */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-serif text-2xl font-bold text-foreground">Customer Reviews</h2>
+                  <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Write a Review
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="font-serif text-xl">Share Your Experience</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={handleReviewSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="review-name">Your Name *</Label>
+                          <Input
+                            id="review-name"
+                            value={reviewData.name}
+                            onChange={(e) => setReviewData({ ...reviewData, name: e.target.value })}
+                            required
+                            maxLength={100}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="review-email">Email (optional)</Label>
+                          <Input
+                            id="review-email"
+                            type="email"
+                            value={reviewData.email}
+                            onChange={(e) => setReviewData({ ...reviewData, email: e.target.value })}
+                            maxLength={255}
+                          />
+                        </div>
+                        <div>
+                          <Label>Rating *</Label>
+                          <div className="flex items-center gap-1 mt-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                className="p-1 hover:scale-110 transition-transform"
+                              >
+                                <Star
+                                  className={`w-8 h-8 ${star <= reviewData.rating ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="review-text">Your Review *</Label>
+                          <Textarea
+                            id="review-text"
+                            value={reviewData.text}
+                            onChange={(e) => setReviewData({ ...reviewData, text: e.target.value })}
+                            placeholder="Share your experience with this service..."
+                            rows={4}
+                            required
+                            maxLength={1000}
+                          />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isSubmitting}>
+                          {isSubmitting ? "Submitting..." : "Submit Review"}
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {reviews.length > 0 ? (
+                  <div className="space-y-4">
+                    {reviews.map((review, index) => (
+                      <motion.div
+                        key={review.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-card rounded-xl p-5 border border-border"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary font-semibold">
+                              {review.customer_name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                              <h4 className="font-semibold text-foreground">{review.customer_name}</h4>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-4 h-4 ${i < review.rating ? "fill-gold text-gold" : "text-muted-foreground"}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-muted-foreground text-sm leading-relaxed">
+                              <Quote className="w-4 h-4 inline-block mr-1 text-primary/50" />
+                              {review.review_text}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {new Date(review.created_at).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 bg-muted/30 rounded-xl">
+                    <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No reviews yet. Be the first to share your experience!</p>
+                  </div>
+                )}
               </motion.div>
             </div>
 
